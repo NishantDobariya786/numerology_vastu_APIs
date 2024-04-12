@@ -5,8 +5,14 @@ import { ValidationError } from "joi";
 import Boom from "@hapi/boom";
 import { authStrategyPlugin } from "./modules/users/auth-strategy/user.authstrategy";
 import hapiAuthJwt2 from "hapi-auth-jwt2";
+import numerologyRouterPlugin from "./modules/numerology/routes/numerology.route";
 
-const routes = [hapiAuthJwt2, authStrategyPlugin, userRouterPlugin];
+const routes = [
+  hapiAuthJwt2,
+  authStrategyPlugin,
+  userRouterPlugin,
+  numerologyRouterPlugin,
+];
 
 export const registerPlugins = async () => {
   const server = Hapi.server({
@@ -34,76 +40,20 @@ export const registerPlugins = async () => {
     strictHeader: true,
   });
 
-  //   server.ext("onPreResponse", (request, h) => {
-  //     const response = request.response;
-
-  //     if (!(response instanceof Error)) {
-  //       return h.continue;
-  //     }
-
-  //     if (response instanceof ValidationError) {
-  //       return h
-  //         .response({
-  //           statusCode: 400,
-  //           error: "Validation Error",
-  //           message: response.details.map((d) => d.message).join(", "),
-  //         })
-  //         .code(400);
-  //     }
-
-  //     switch (response.message) {
-  //       case error.NOT_FOUND:
-  //         return h
-  //           .response({
-  //             error: "Route not found",
-  //           })
-  //           .code(404);
-
-  //       case error.USER_ALREADY_EXIST:
-  //         return h
-  //           .response({
-  //             error: "User`s email or username is already in use",
-  //           })
-  //           .code(401);
-
-  //       case error.INVALID_CREDENSTIALS:
-  //         return h
-  //           .response({
-  //             error: "provided credentials are not valid",
-  //           })
-  //           .code(401);
-
-  //       case error.UNAUTHORIZED_USER:
-  //         return h
-  //           .response({
-  //             error: "Unauthorized User",
-  //           })
-  //           .code(401);
-
-  //       case error.FORBIDDEN:
-  //         return h
-  //           .response({
-  //             error: "User not have permission to access this route",
-  //           })
-  //           .code(403);
-
-  //       case error.INVALID_OBJECT_ID:
-  //         return h
-  //           .response({
-  //             error: "Provided ObjectId Not Valid",
-  //           })
-  //           .code(400);
-
-  //       default:
-  //         console.error(response.message);
-  //         return h
-  //           .response({
-  //             error: "Internal Server Error",
-  //             message: "An internal server error occurred",
-  //           })
-  //           .code(500);
-  //     }
-  //   });
+  server.ext("onPreResponse", (request, h) => {
+    const response = request.response;
+    //@ts-ignore
+    if (response?.isBoom) {
+      return h
+        .response({
+          //@ts-ignore
+          statusCode: response?.output?.statusCode,
+          responseMsg: response.message,
+        })
+        .code(401);
+    }
+    return h.continue;
+  });
 
   for (const route of routes) {
     await server.register(route);

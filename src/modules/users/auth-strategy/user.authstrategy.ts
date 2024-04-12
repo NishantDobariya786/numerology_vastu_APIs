@@ -13,19 +13,17 @@ const authStrategyPlugin: Plugin<any> = {
   register: async (server: Server<ServerApplicationState>) => {
     server.auth.strategy("jwt", "jwt", {
       key: env.JWT_SECRET_KEY,
-      verify: {
-        aud: false,
-        iss: false,
-        sub: false,
-        maxAgeSec: 48 * 60 * 60, // 4 hours
-      },
       validate: async (decoded: any, request: Request, h: ResponseToolkit) => {
         const user = await getUser(decoded?.email);
-        //@ts-ignore
 
-        if (!user) {
+        if (
+          !user ||
+          //@ts-ignore
+          user?.session !== request?.auth?.token
+        ) {
           return { isValid: false };
         }
+
         //@ts-ignore
         if (request?.route?.settings?.auth?.access?.[0]?.scope?.selection) {
           const scope = //@ts-ignore

@@ -73,7 +73,7 @@ function generateUserAccessToken(
   };
 
   const accessToken = sign(payload, env.JWT_SECRET_KEY, {
-    expiresIn: "2d",
+    expiresIn: "10d",
   });
 
   return accessToken;
@@ -85,12 +85,34 @@ async function createUser(user: Partial<UserDocument>) {
   }
 
   return UserModel.create({
-    email: user.email,
-    username: user.username,
     authStrategy: user.authStrategy,
+    email: user.email,
+    ...(user.username && { username: user.username }),
+    ...(user.mobileNumber && { mobileNumber: user.mobileNumber }),
+    ...(user.gender && { gender: user.gender }),
+    ...(user.dateOfBirth && { dateOfBirth: user.dateOfBirth }),
     ...(user.session && { session: user.session }),
     ...(user.password && { password: user.password }),
   });
+}
+
+async function updateUserProfile(
+  userId: string,
+  update: Partial<UserDocument>
+) {
+  if (update?.password) {
+    update.password = await hashPassword(update.password);
+  }
+  if (update?.dateOfBirth) {
+    update.dateOfBirth = new Date(update.dateOfBirth);
+  }
+  return UserModel.findOneAndUpdate(
+    {
+      _id: getObjectId(userId),
+    },
+    { $set: update },
+    { new: true }
+  ).lean();
 }
 
 export {
@@ -101,4 +123,5 @@ export {
   sanitizeUser,
   updateSessionOfUser,
   getUserById,
+  updateUserProfile,
 };

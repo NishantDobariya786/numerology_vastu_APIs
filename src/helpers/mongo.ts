@@ -15,4 +15,8 @@ function validateObjectId(value: any, helpers: any) {
   return value;
 }
 
-export { getObjectId, validateObjectId };
+function createMongoISODate(date: Date | string) {
+  return new Date(date);
+}
+
+export { getObjectId, validateObjectId, createMongoISODate };
