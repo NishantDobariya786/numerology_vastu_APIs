@@ -1,8 +1,7 @@
 import { OTPModel } from "../models/otp.model";
 import { verifyOTP } from "../../../helpers/generateOTP";
-import { getObjectId } from "../../../helpers/mongo";
 
-function updateOtpForUser(email: string, secret: Object, type: string) {
+function updateUserOTP(email: string, secret: Object, type: string) {
   return OTPModel.findOneAndUpdate(
     {
       email: email,
@@ -56,7 +55,7 @@ function deleteOtp(email: string) {
 }
 
 export {
-  updateOtpForUser,
+  updateUserOTP,
   verifyUserOtp,
   checkOtpVerified,
   markOtpVerified,

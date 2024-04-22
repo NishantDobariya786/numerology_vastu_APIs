@@ -1,17 +1,13 @@
 import { ReqRefDefaults, Request, ResponseToolkit } from "@hapi/hapi";
 import { sendOtpEmail } from "../../email/service/email.service";
 import { generateOTP } from "../../../helpers/generateOTP";
-import {
-  markOtpVerified,
-  updateOtpForUser,
-  verifyUserOtp,
-} from "../services/user_otp_verify.service";
+import { updateUserOTP } from "../services/user_otp_verify.service";
 import Boom from "@hapi/boom";
-import { getUser } from "../services/user.service";
+import { getUser, verifyPassword } from "../services/user.service";
 import { error } from "../../../config/errors";
 import { TemplateNum } from "../../email/config/const";
 
-async function sendUserSignupOTPController(
+async function sendUserSignupOTPEmailController(
   request: Request<ReqRefDefaults>,
   response: ResponseToolkit<ReqRefDefaults>
 ) {
@@ -25,7 +21,7 @@ async function sendUserSignupOTPController(
 
   const { otp, secret } = generateOTP();
 
-  const newOtpDocument = await updateOtpForUser(
+  const newOtpDocument = await updateUserOTP(
     email,
     secret,
     TemplateNum.REGISTER_USER_OTP
@@ -45,7 +41,7 @@ async function sendUserSignupOTPController(
     .code(200);
 }
 
-async function sendUserForgetPasswordOTPController(
+async function sendUserForgetPasswordOTPEmailController(
   request: Request<ReqRefDefaults>,
   response: ResponseToolkit<ReqRefDefaults>
 ) {
@@ -54,12 +50,12 @@ async function sendUserForgetPasswordOTPController(
   const user = await getUser(email);
 
   if (!user) {
-    throw Boom.unauthorized(error.UNAUTHORIZED_USER);
+    throw Boom.notFound(error.USER_NOT_EXIST);
   }
 
   const { otp, secret } = generateOTP();
 
-  const newOtpDocument = await updateOtpForUser(
+  const newOtpDocument = await updateUserOTP(
     email,
     secret,
     TemplateNum.FORGET_PASSWORD_OTP_TEMPLATE
@@ -83,4 +79,50 @@ async function sendUserForgetPasswordOTPController(
     .code(200);
 }
 
-export { sendUserSignupOTPController, sendUserForgetPasswordOTPController };
+async function sendUserChangeEmailOTPEmailController(
+  request: Request<ReqRefDefaults>,
+  response: ResponseToolkit<ReqRefDefaults>
+) {
+  const { email, password } = request.payload as any;
+
+  const { credentials: user } = request.auth as any;
+
+  const isUserExist = await getUser(email);
+
+  if (isUserExist) {
+    throw Boom.conflict(error.USER_ALREADY_EXIST);
+  }
+
+  const isPasswordValid = await verifyPassword(password, user.password);
+
+  if (!isPasswordValid) {
+    throw Boom.conflict(error.INVALID_CREDENSTIALS);
+  }
+
+  const { otp, secret } = generateOTP();
+
+  const newOtpDocument = await updateUserOTP(
+    email,
+    secret,
+    TemplateNum.CHANGE_EMAIL_OTP_TEMPLATE
+  );
+
+  if (!newOtpDocument) {
+    throw Boom.internal("Something Went Wrong While generating OTP");
+  }
+
+  await sendOtpEmail(email, otp, TemplateNum.CHANGE_EMAIL_OTP_TEMPLATE);
+
+  return response
+    .response({
+      statusCode: 200,
+      responseMsg: "OTP email sent successFully",
+    })
+    .code(200);
+}
+
+export {
+  sendUserSignupOTPEmailController,
+  sendUserForgetPasswordOTPEmailController,
+  sendUserChangeEmailOTPEmailController,
+};

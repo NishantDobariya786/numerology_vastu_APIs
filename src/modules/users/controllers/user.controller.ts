@@ -3,6 +3,7 @@ import { ReqRefDefaults, Request, ResponseToolkit } from "@hapi/hapi";
 import { error } from "../../../config/errors";
 import {
   createUser,
+  deleteUserProfile,
   generateUserAccessToken,
   getUser,
   sanitizeUser,
@@ -10,53 +11,29 @@ import {
   updateUserProfile,
   verifyPassword,
 } from "../services/user.service";
-import { AuthEnum } from "../models/user.model";
+import { AuthEnum, UserDocument } from "../models/user.model";
 import {
   checkOtpVerified,
   deleteOtp,
   markOtpVerified,
   verifyUserOtp,
 } from "../services/user_otp_verify.service";
-
-// async function userSignupController(
-//   request: Request<ReqRefDefaults>,
-//   response: ResponseToolkit<ReqRefDefaults>
-// ) {
-//   const { username, email, password, gender, mobileNumber, dateOfBirth, otp } =
-//     request.payload as any;
-
-//   const user = await getUser(email);
-
-//   if (user) {
-//     throw Boom.conflict(error.USER_ALREADY_EXIST);
-//   }
-
-//   const isValidOtp = await verifyUserOtp(email, otp);
-
-//   if (!isValidOtp) {
-//     throw Boom.conflict(error.OTP_NOT_VALID);
-//   }
-
-//   await createUser({
-//     email,
-//     username,
-//     password,
-//     gender,
-//     mobileNumber,
-//     dateOfBirth: new Date(dateOfBirth),
-//     authStrategy: AuthEnum.LOCAL,
-//   });
-
-//   return response
-//     .response({ responseMsg: "User Created SuccessFully Please Login" })
-//     .code(200);
-// }
+import { addDeletedUserProfile } from "../services/deleted_users.service";
 
 async function userSignupController(
   request: Request<ReqRefDefaults>,
   response: ResponseToolkit<ReqRefDefaults>
 ) {
-  const { email, password } = request.payload as any;
+  const {
+    username,
+    email,
+    password,
+    gender,
+    mobileNumber,
+    dateOfBirth,
+    language,
+    countryCode,
+  } = request.payload as any;
 
   const user = await getUser(email);
 
@@ -73,8 +50,13 @@ async function userSignupController(
   await Promise.all([
     createUser({
       email,
+      username,
       password,
-      authStrategy: AuthEnum.LOCAL,
+      gender,
+      mobileNumber,
+      countryCode,
+      language,
+      dateOfBirth: new Date(dateOfBirth),
     }),
     deleteOtp(email),
   ]);
@@ -96,13 +78,13 @@ async function userLoginController(
   const user = await getUser(email);
 
   if (!user || !user.password) {
-    throw Boom.badData(error.INVALID_CREDENSTIALS);
+    throw Boom.conflict(error.INVALID_CREDENSTIALS);
   }
 
   const isPasswordValid = await verifyPassword(password, user.password);
 
   if (!isPasswordValid) {
-    throw Boom.badData(error.INVALID_CREDENSTIALS);
+    throw Boom.conflict(error.INVALID_CREDENSTIALS);
   }
 
   const token = generateUserAccessToken(
@@ -144,7 +126,7 @@ async function userChangePasswoedController(
   const user = await getUser(email);
 
   if (!user || !user.password) {
-    throw Boom.unauthorized(error.UNAUTHORIZED_USER);
+    throw Boom.conflict(error.UNAUTHORIZED_USER);
   }
 
   const isOptVerified = await checkOtpVerified(email);
@@ -234,7 +216,7 @@ async function verifyUserSignupOTPController(
   return response
     .response({
       statusCode: 200,
-      responseMsg: "OTP verified successFully",
+      responseMsg: "Signup OTP verified successFully",
     })
     .code(200);
 }
@@ -262,36 +244,130 @@ async function verifyUserForgetPasswordOTPController(
   return response
     .response({
       statusCode: 200,
-      responseMsg: "OTP verified successfully",
+      responseMsg: "Change password OTP verified successfully",
     })
     .code(200);
 }
+
+async function verifyChangeEmailOTPController(
+  request: Request<ReqRefDefaults>,
+  response: ResponseToolkit<ReqRefDefaults>
+) {
+  const { credentials: user } = request.auth as any;
+
+  const { email, otp } = request.payload as any;
+
+  const isUserExist = await getUser(email);
+
+  if (isUserExist) {
+    throw Boom.conflict(error.USER_ALREADY_EXIST);
+  }
+
+  const isValidOtp = await verifyUserOtp(email, otp);
+
+  if (!isValidOtp) {
+    throw Boom.conflict(error.OTP_NOT_VALID);
+  }
+
+  await Promise.all([
+    updateUserProfile(user._id, { email, session: "", authStrategy: "" }),
+    deleteOtp(email),
+  ]);
+
+  response.state("authorization", "");
+
+  return response
+    .response({
+      statusCode: 200,
+      responseMsg: "User email changed successfully",
+    })
+    .code(200);
+}
+
+// async function userChangeEmailController(
+//   request: Request<ReqRefDefaults>,
+//   response: ResponseToolkit<ReqRefDefaults>
+// ) {
+//   const { credentials: user } = request.auth as any;
+
+//   const { email } = request.payload as any;
+
+//   const isUserExist = await getUser(email);
+
+//   if (isUserExist) {
+//     throw Boom.conflict(error.USER_ALREADY_EXIST);
+//   }
+
+//   await updateUserProfile(user._id, { email, session: "", authStrategy: "" });
+
+//   response.state("authorization", "");
+
+//   return response
+//     .response({
+//       statusCode: 200,
+//       responseMsg: "User email changed successfully",
+//     })
+//     .code(200);
+// }
 
 async function userProfileUpdateController(
   request: Request<ReqRefDefaults>,
   response: ResponseToolkit<ReqRefDefaults>
 ) {
-  const { username, email, password, gender, mobileNumber, dateOfBirth } =
+  const { credentials: user } = request.auth as any;
+
+  const { mobileNumber, oldPassword, newPassword, language, countryCode } =
     request.payload as any;
 
-  const user = await getUser(email);
+  const update: Partial<UserDocument> = {
+    ...(mobileNumber && { mobileNumber }),
+    ...(countryCode && { countryCode }),
+    ...(language && { language }),
+  };
 
-  if (!user) {
-    throw Boom.unauthorized(error.UNAUTHORIZED_USER);
+  if (newPassword) {
+    const isPasswordValid = await verifyPassword(oldPassword, user.password);
+
+    if (!isPasswordValid) {
+      throw Boom.conflict(error.INVALID_CREDENSTIALS);
+    }
+
+    update.password = newPassword;
   }
 
-  await updateUserProfile(user._id, {
-    username,
-    password,
-    gender,
-    mobileNumber,
-    dateOfBirth,
-  });
+  const updatedUser = await updateUserProfile(user._id, update);
+
+  //@ts-ignore
+  updatedUser["token"] = updatedUser?.session;
+
+  const senitizedUser = sanitizeUser(updatedUser as any);
 
   return response
     .response({
       statusCode: 200,
       responseMsg: "User profile updated successfully",
+      data: senitizedUser,
+    })
+    .code(200);
+}
+
+async function userProfileDeleteController(
+  request: Request<ReqRefDefaults>,
+  response: ResponseToolkit<ReqRefDefaults>
+) {
+  const { credentials: user } = request.auth as any;
+  //@ts-ignore
+  const { reason } = request.payload;
+  //@ts-ignore
+  await Promise.all([
+    deleteUserProfile(user._id),
+    addDeletedUserProfile(user.email, reason, user),
+  ]);
+
+  return response
+    .response({
+      statusCode: 200,
+      responseMsg: "User profile deleted successfully",
     })
     .code(200);
 }
@@ -303,6 +379,8 @@ export {
   userLogoutController,
   userProfileUpdateController,
   userChangePasswoedController,
+  userProfileDeleteController,
   verifyUserSignupOTPController,
   verifyUserForgetPasswordOTPController,
+  verifyChangeEmailOTPController,
 };

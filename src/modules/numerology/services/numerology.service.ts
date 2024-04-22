@@ -1,7 +1,11 @@
 import Boom from "@hapi/boom";
 import { MonthEnum } from "../constants/months.constant";
 import { GenderEnum } from "../../users/models/user.model";
-import { MapType } from "../constants/types";
+import { MapTypeString } from "../constants/types";
+import {
+  getNumbersLanguageObj,
+  LanguageKey,
+} from "../../../language/constants/language.numbers";
 
 function sumNumbersOfString(numString: string) {
   let sum = 0;
@@ -34,33 +38,12 @@ function calculateDriverNumber(date: Date) {
   const day = date.getDate();
   var numString = day.toString();
 
-  return sumNumbersOfString(numString);
-}
-
-function calculateCountOfDateNumber(dateString: string) {
-  const map: MapType = {
-    "1": 0,
-    "2": 0,
-    "3": 0,
-    "4": 0,
-    "5": 0,
-    "6": 0,
-    "7": 0,
-    "8": 0,
-    "9": 0,
-  };
-
-  for (const number of dateString) {
-    if (map.hasOwnProperty(number)) {
-      map[number] = map[number] + 1;
-    }
-  }
-  return map;
+  return sumNumbersOfString(numString).toString();
 }
 
 function calculateConductorNumber(date: Date) {
   const fullDate = dateToStringOfNumbers(date);
-  return sumNumbersOfString(fullDate);
+  return sumNumbersOfString(fullDate).toString();
 }
 
 function calculateKuaNumber(date: Date, gender: String) {
@@ -76,12 +59,35 @@ function calculateKuaNumber(date: Date, gender: String) {
     default:
       throw Boom.badData("gender not valid");
   }
-  return number;
+  return number.toString();
 }
 
-function calculateLoshuGridNumbers(date: Date) {
+function calculateLoshuGridNumbers(date: Date, language: LanguageKey) {
   const fullDate = dateToStringOfNumbers(date);
-  return calculateCountOfDateNumber(fullDate);
+
+  const map: MapTypeString = {
+    "1": "",
+    "2": "",
+    "3": "",
+    "4": "",
+    "5": "",
+    "6": "",
+    "7": "",
+    "8": "",
+    "9": "",
+  };
+
+  const languageObj = getNumbersLanguageObj[language];
+
+  for (const number of fullDate) {
+    if (map.hasOwnProperty(number)) {
+      //@ts-ignore
+      map[number] =
+        (map[number] ? map[number].toString() : "") +
+        languageObj[number.toString()];
+    }
+  }
+  return map;
 }
 
 export {
@@ -89,4 +95,5 @@ export {
   calculateConductorNumber,
   calculateDriverNumber,
   calculateLoshuGridNumbers,
+  sumNumbersOfString,
 };

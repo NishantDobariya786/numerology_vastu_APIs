@@ -1,6 +1,6 @@
 import { Plugin, Server, ServerRoute } from "@hapi/hapi";
 import {
-  getAnalysisController,
+  getReportsAnalysisController,
   getLoshuGridDataController,
 } from "../controllers/numerology.controller";
 
@@ -11,6 +11,11 @@ const numerologyRoutes: ServerRoute[] = [
     method: "GET",
     path: `${basePath}`,
     handler: getLoshuGridDataController,
+  },
+  {
+    method: "GET",
+    path: `${basePath}/{reportType}`,
+    handler: getReportsAnalysisController,
   },
 ];
 

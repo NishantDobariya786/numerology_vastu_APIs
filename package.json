@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon",
     "build": "tsc",
-    "build:run": "tsc && node dist/index.js"
+    "build:run": "tsc && node dist/index.js",
+    "db:seed:reports": "tsc && node dist/db/seed/reports/index.js"
   },
   "keywords": [],
   "author": "",

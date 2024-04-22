@@ -7,7 +7,7 @@ const numeroValidation = Joi.object({
     .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z0-9]{3,30}$"))
     .optional(),
   dateOfBirth: Joi.date().max("now").optional(),
-  mobileNumber: Joi.number().optional(),
+  mobileNumber: Joi.string().optional(),
 });
 
 export { numeroValidation };

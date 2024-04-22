@@ -2,53 +2,25 @@ import { Plugin, Server, ServerRoute } from "@hapi/hapi";
 import {
   loginSchemaValidation,
   signupSchemaValidation,
-  getUserSignupOtpValidation,
-  verifyOtpForUserSignupValidation,
-  verifyForgetPasswordOtpValidation,
   changePasswordValidation,
-  getForgetPasswordOtpValidation,
   updateUserProfileValidation,
+  changeEmailValidation,
+  verifyContactUsValidation,
 } from "../validators/auth.validator";
 import {
   getUserProfileController,
   userChangePasswoedController,
   userLoginController,
   userLogoutController,
+  userProfileDeleteController,
   userProfileUpdateController,
   userSignupController,
-  verifyUserForgetPasswordOTPController,
-  verifyUserSignupOTPController,
 } from "../controllers/user.controller";
-import {
-  sendUserForgetPasswordOTPController,
-  sendUserSignupOTPController,
-} from "../controllers/user_email.controller";
+import { contactUsController } from "../controllers/contact_us.controller";
 
 const basePath = "/api/user";
 
 const userRoutes: ServerRoute[] = [
-  {
-    method: "POST",
-    path: `${basePath}/get-signup-opt`,
-    options: {
-      validate: {
-        payload: getUserSignupOtpValidation,
-      },
-      auth: false,
-    },
-    handler: sendUserSignupOTPController,
-  },
-  {
-    method: "POST",
-    path: `${basePath}/verify-signup-opt`,
-    options: {
-      validate: {
-        payload: verifyOtpForUserSignupValidation,
-      },
-      auth: false,
-    },
-    handler: verifyUserSignupOTPController,
-  },
   {
     method: "POST",
     path: `${basePath}/signup`,
@@ -73,28 +45,6 @@ const userRoutes: ServerRoute[] = [
   },
   {
     method: "POST",
-    path: `${basePath}/get-forgetpassword-opt`,
-    options: {
-      validate: {
-        payload: getForgetPasswordOtpValidation,
-      },
-      auth: false,
-    },
-    handler: sendUserForgetPasswordOTPController,
-  },
-  {
-    method: "POST",
-    path: `${basePath}/verify-forgetpassword-opt`,
-    options: {
-      validate: {
-        payload: verifyForgetPasswordOtpValidation,
-      },
-      auth: false,
-    },
-    handler: verifyUserForgetPasswordOTPController,
-  },
-  {
-    method: "POST",
     path: `${basePath}/changePassword`,
     options: {
       validate: {
@@ -105,24 +55,39 @@ const userRoutes: ServerRoute[] = [
     handler: userChangePasswoedController,
   },
   {
-    method: "GET",
+    method: "PATCH",
     path: `${basePath}/logout`,
     handler: userLogoutController,
   },
   {
     method: "GET",
-    path: `${basePath}/profile`,
+    path: `${basePath}`,
     handler: getUserProfileController,
   },
   {
     method: "PUT",
-    path: `${basePath}/update-profile`,
+    path: `${basePath}`,
     options: {
       validate: {
         payload: updateUserProfileValidation,
       },
     },
     handler: userProfileUpdateController,
+  },
+  {
+    method: "DELETE",
+    path: `${basePath}`,
+    handler: userProfileDeleteController,
+  },
+  {
+    method: "POST",
+    path: `${basePath}/contact-us`,
+    options: {
+      validate: {
+        payload: verifyContactUsValidation,
+      },
+    },
+    handler: contactUsController,
   },
 ];
 

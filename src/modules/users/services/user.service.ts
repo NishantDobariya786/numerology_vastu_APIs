@@ -84,16 +84,7 @@ async function createUser(user: Partial<UserDocument>) {
     user.password = await hashPassword(user.password);
   }
 
-  return UserModel.create({
-    authStrategy: user.authStrategy,
-    email: user.email,
-    ...(user.username && { username: user.username }),
-    ...(user.mobileNumber && { mobileNumber: user.mobileNumber }),
-    ...(user.gender && { gender: user.gender }),
-    ...(user.dateOfBirth && { dateOfBirth: user.dateOfBirth }),
-    ...(user.session && { session: user.session }),
-    ...(user.password && { password: user.password }),
-  });
+  return UserModel.create(user);
 }
 
 async function updateUserProfile(
@@ -115,6 +106,12 @@ async function updateUserProfile(
   ).lean();
 }
 
+function deleteUserProfile(_id: string) {
+  return UserModel.deleteOne({
+    _id: getObjectId(_id),
+  }).lean();
+}
+
 export {
   getUser,
   createUser,
@@ -123,5 +120,6 @@ export {
   sanitizeUser,
   updateSessionOfUser,
   getUserById,
+  deleteUserProfile,
   updateUserProfile,
 };

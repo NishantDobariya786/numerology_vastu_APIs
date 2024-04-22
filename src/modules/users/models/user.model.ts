@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from "mongoose";
-import { MapType } from "../../numerology/constants/types";
+import { MapTypeString } from "../../numerology/constants/types";
 
 interface UserDocument extends Document {
   username: string;
@@ -10,15 +10,17 @@ interface UserDocument extends Document {
   createdAt: Date;
   updatedAt: Date;
   gender: String;
-  mobileNumber: Number;
+  mobileNumber: string;
   authStrategy?: String;
   age: Number;
   profilePicture?: String;
   role: string;
-  driverNumber: number;
-  conductorNumber: number;
-  kuaNumber: number;
-  loshuGrid: MapType;
+  countryCode?: string;
+  driverNumber: string;
+  conductorNumber: string;
+  kuaNumber: string;
+  loshuGrid: MapTypeString;
+  language: string;
 }
 
 enum AuthEnum {
@@ -37,6 +39,12 @@ enum GenderEnum {
   FEMALE = "female",
 }
 
+enum LanguageEnum {
+  ENGLISH = "en",
+  HINDI = "hi",
+  GUJARATI = "gu",
+}
+
 const userSchema = new Schema<UserDocument>(
   {
     username: {
@@ -44,6 +52,10 @@ const userSchema = new Schema<UserDocument>(
       required: false,
       lowercase: true,
       trim: true,
+    },
+    countryCode: {
+      type: String,
+      required: false,
     },
     email: {
       type: String,
@@ -61,7 +73,7 @@ const userSchema = new Schema<UserDocument>(
       required: false,
     },
     mobileNumber: {
-      type: Number,
+      type: String,
       required: false,
     },
     loshuGrid: {
@@ -85,27 +97,39 @@ const userSchema = new Schema<UserDocument>(
       required: false,
     },
     driverNumber: {
-      type: Number,
+      type: String,
       required: false,
     },
     conductorNumber: {
-      type: Number,
+      type: String,
       required: false,
     },
     kuaNumber: {
-      type: Number,
+      type: String,
       required: false,
+    },
+    language: {
+      type: String,
+      required: true,
+      default: LanguageEnum.ENGLISH,
     },
     role: {
       type: String,
       default: UserRoleEnum.USER,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
-
-userSchema.index({ session: 1 }, { expireAfterSeconds: 60 });
 
 const UserModel = mongoose.model<UserDocument>("User", userSchema);
 
-export { UserModel, UserDocument, AuthEnum, UserRoleEnum, GenderEnum };
+export {
+  UserModel,
+  UserDocument,
+  AuthEnum,
+  UserRoleEnum,
+  GenderEnum,
+  LanguageEnum,
+};

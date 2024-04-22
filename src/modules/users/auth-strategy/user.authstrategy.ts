@@ -6,7 +6,7 @@ import {
   ServerApplicationState,
 } from "@hapi/hapi";
 import { env } from "../../../config";
-import { getUser } from "../services/user.service";
+import { getUser, getUserById } from "../services/user.service";
 
 const authStrategyPlugin: Plugin<any> = {
   name: "auth-strategy",
@@ -14,7 +14,7 @@ const authStrategyPlugin: Plugin<any> = {
     server.auth.strategy("jwt", "jwt", {
       key: env.JWT_SECRET_KEY,
       validate: async (decoded: any, request: Request, h: ResponseToolkit) => {
-        const user = await getUser(decoded?.email);
+        const user = await getUserById(decoded?._id);
 
         if (
           !user ||

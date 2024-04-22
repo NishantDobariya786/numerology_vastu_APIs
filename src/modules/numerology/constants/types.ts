@@ -2,4 +2,8 @@ interface MapType {
   [key: string]: number;
 }
 
-export { MapType };
+interface MapTypeString {
+  [key: string]: string;
+}
+
+export { MapType, MapTypeString };
